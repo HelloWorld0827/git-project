@@ -77,7 +77,7 @@ while True:
                     found = True
                     break
         else:
-            print(f"{courseselect} 해당하는 과목이 없습니다.")
+            print(f"{courseselect}해당하는 과목이 없습니다.")
 
     elif value == 4:
         submit_credit, submit_gpa = Course.calculate_gpa(for_submission=True)
