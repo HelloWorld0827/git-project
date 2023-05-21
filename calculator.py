@@ -1,88 +1,171 @@
-class Course:
-    course_map = {'base_id': 12345}
-    course_grade_list = []
-
+class CourseRecord:
+    def __init__(self, course_id, course_name, credit, grade):
+        self.course_id = course_id
+        self.course_name = course_name
+        self.credit = credit
+        self.grade = grade
+        
+    def __str__(self):
+        string = '[' + self.course_name + '] ' + str(self.credit) + '학점: ' + self.grade
+        return string
+        
     @classmethod
-    def convert_score(cls, grade):
-        scores = {'A+': 4.5, 'A': 4.0, 'B+': 3.5, 'B': 3.0, 'C+': 2.5, 'C': 2.0, 'D+': 1.5, 'D': 1.0, 'F': 0.0}
-        return scores[grade]
+    def get_gpa_score(cls, gpa):
+        
+        match gpa:
+            case 'A+':
+                return 4.5
+            case 'A':
+                return 4
+            case 'B+':
+                return 3.5
+            case 'B':
+                return 3
+            case 'C+':
+                return 2.5
+            case 'C':
+                return 2
+            case 'D+':
+                return 1.5
+            case 'D':
+                return 1
+            case 'F':
+                return 0
+            case _:
+                print('잘못된 입력입니다.')
+                return
 
-    @classmethod
-    def get_code(cls, course_name):
-        if course_name not in cls.course_map:
-            cls.course_map[course_name] = cls.course_map['base_id']
-            cls.course_map['base_id'] += 1
-        return cls.course_map[course_name]
+class CourseHistory:
+    def __init__(self):
+        self.history = []
+        self.course_id_map = {'id': 10000}
+        self.submit_grade = {}
+        self.archive_grade = {}
+    
+    # 점수 변환 함수
+    def allocate_course_id(self, course_name):
+        if course_name not in self.course_id_map:
+            new_id = str(int(self.course_id_map['id']) + 1)
+            self.course_id_map['id'] = new_id
+            self.course_id_map[course_name] = new_id
+            self.course_id_map[new_id] = course_name
 
-    @classmethod
-    def input_course_grade(cls):
-        course_name = input("과목명을 입력하세요: ")
-        credit = int(input("학점을 입력하세요: "))
-        grade = input("평점을 입력하세요: ")
+            return new_id
 
-        # 기존에 수강한 과목인지 확인
-        found = False
-        for i, (code, _, _) in enumerate(cls.course_grade_list):
-            if code == cls.get_code(course_name):
-                found = True
-                if cls.convert_score(grade) > cls.convert_score(cls.course_grade_list[i][2]):
-                    cls.course_grade_list[i] = (cls.get_code(course_name), credit, grade)
-                break
-
-        if not found:
-            cls.course_grade_list.append((cls.get_code(course_name), credit, grade))
-
-        print("입력되었습니다.")
-
-    @classmethod
-    def print_course_grade(cls):
-        for code, credit, grade in cls.course_grade_list:
-            course_name = [k for k, v in cls.course_map.items() if v == code][0]
-            print(f"[{course_name}] {credit}학점: {grade}")
-        print("")
-
-    @classmethod
-    def calculate_gpa(cls, for_submission=False):
-        total_credit, total_gpa = 0, 0.0
-        for code, credit, grade in cls.course_grade_list:
-            if grade != 'F' or for_submission:
-                total_credit += credit
-                total_gpa += cls.convert_score(grade) * credit
-        gpa = total_gpa / total_credit if total_credit > 0 else 0.0
-        return total_credit, gpa
-
-while True:
-    print("작업을 선택하세요.")
-    print("1. 입력")
-    print("2. 출력")
-    print("3. 조회")
-    print("4. 계산")
-    print("5. 종료")
-    user_value = input()
-    value = int(user_value)
-
-    if value == 1:
-        Course.input_course_grade()
-
-    elif value == 2:
-        Course.print_course_grade()
-
-    elif value == 3:
-        courseselect = input("과목명을 입력하세요: ")
-        if courseselect in Course.course_map:
-            found = False
-            for code, credit, grade in Course.course_grade_list:
-                if code == Course.get_code(courseselect):
-                    print(f"[{courseselect}] {credit}학점: {grade}")
-                    found = True
-                    break
         else:
-            print(f"해당하는 과목이 없습니다.")
+            return self.course_id_map[course_name]
+        
+    # 입력 함수
+    def input_process(self):
+        try:
+            course_name = input('과목명을 입력하세요: ')
+            course_id = self.allocate_course_id(course_name)
 
-    elif value == 4:
-        submit_credit, submit_gpa = Course.calculate_gpa(for_submission=True)
-        read_credit, read_gpa = Course.calculate_gpa()
-        print(f"제출용: {submit_credit}학점 (GPA: {submit_gpa:.2f})")
-        print(f"열람용: {read_credit}학점 (GPA: {read_gpa:.2f})")
-    elif value == 5:
+            credit = input('학점을 입력하세요: ')
+            credit = int(credit)
+        
+            gpa = input('평점을 입력하세요: ')
+            gpa_score = CourseRecord.get_gpa_score(gpa)
+        
+            if gpa_score is not None:
+                # 열람용 학점 처리
+                if course_id in self.archive_grade:
+                    # 재수강 처리
+                    if gpa_score > self.archive_grade[course_id][1]:
+                        self.archive_grade[course_id] = (credit, gpa_score)
+                else:
+                    self.archive_grade[course_id] = (credit, gpa_score)
+                
+                # 제출용 학점 처리
+                if gpa_score > 0.0:
+                    if course_id in self.submit_grade:
+                        # 재수강 처리
+                        if gpa_score > self.submit_grade[course_id][1]:
+                            self.submit_grade[course_id] = (credit, gpa_score)
+                    else:
+                        self.submit_grade[course_id] = (credit, gpa_score)
+
+                course_record = CourseRecord(course_id, course_name, credit, gpa)
+                self.history.append(course_record)
+            
+                print('입력되었습니다.')
+
+        except ValueError:
+            print('잘못된 입력입니다.')
+
+    # 출력 함수
+    def print_process(self):
+        for course_record in self.history:
+            print(course_record)
+    
+    # 조회 함수
+    def query_process(self):
+
+        course_name = input('과목명을 입력하세요: ')
+        
+        for course_record in self.history:
+            if course_name == course_record.course_name:
+                print(course_record)
+            else:
+                print('해당하는 과목이 없습니다.')
+        
+    # 계산 함수
+    def calculate_process(self):
+
+        submit_gpa, archive_gpa = 0.0, 0.0
+        submit_credit, archive_credit = 0, 0
+        
+        for course_id in self.submit_grade:
+            submit_gpa += self.submit_grade[course_id][0] * self.submit_grade[course_id][1]
+            submit_credit += self.submit_grade[course_id][0]
+        
+        for course_id in self.archive_grade:
+            archive_gpa += self.archive_grade[course_id][0] * self.archive_grade[course_id][1]
+            archive_credit += self.archive_grade[course_id][0]
+        
+        submit_gpa /= submit_credit
+        archive_gpa /= archive_credit
+    
+        print('제출용: ' + str(submit_credit) + '학점' + '(GPA: ' + str(submit_gpa) + ')')
+        print('열람용: ' + str(archive_credit) + '학점' + '(GPA: ' + str(archive_gpa) + ')')     
+
+# 실행 코드
+course_history = CourseHistory()
+
+# 무한 루프
+while True:
+    # 출력
+    print('작업을 선택하세요')
+    print('    1. 입력')
+    print('    2. 출력')
+    print('    3. 조회')
+    print('    4. 계산')
+    print('    5. 종료')
+
+    # 사용자 입력
+    user_input = input()
+    
+    # 입력값별 작업
+    if user_input == '1':
+        course_history.input_process()
+        
+    elif user_input == '2':
+        course_history.print_process()
+        
+    elif user_input == '3':
+        course_history.query_process()
+
+    elif user_input == '4':
+        course_history.calculate_process()
+        
+    elif user_input == '5':
         break
+
+    elif not user_input:
+        print('잘못된 입력입니다.')
+
+    else:
+        continue
+        
+print('프로그램을 종료합니다.')
+
