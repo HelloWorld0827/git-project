@@ -1,3 +1,5 @@
+import csv
+
 class CourseRecord:
     def __init__(self, course_id, course_name, credit, grade):
         self.course_id = course_id
@@ -129,6 +131,36 @@ class CourseHistory:
         print('제출용: ' + str(submit_credit) + '학점' + '(GPA: ' + str(submit_gpa) + ')')
         print('열람용: ' + str(archive_credit) + '학점' + '(GPA: ' + str(archive_gpa) + ')')     
 
+    def savefile(self):
+        filename = input('저장할 파일 이름을 입력하세요: ')
+        with open(filename, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['과목명', '학점', '평점'])
+            for course_record in self.history:
+                writer.writerow([course_record.course_name, course_record.credit, course_record.grade])
+        print('파일로 저장되었습니다.')
+
+    def loadfile(self):
+        filename = input('불러올 파일 이름을 입력해주세요: ')
+        try:
+            with open (filename, 'r') as file:
+                reader = csv.reader(file)
+                next(reader)
+                for row in reader:
+                    course_name = row[0]
+                    credit = int(row[1])
+                    grade = row[2]
+                    course_id = self.allocate_course_id(course_name)
+                    gpa_score = CourseRecord.get_gpa_score(grade)
+                    if gpa_score is not None:
+                        course_record = CourseRecord(course_id, course_name, credit, grade)
+                        self.history.append(course_record)
+            print('파일을 불러왔습니다.')
+
+        except FileNotFoundError:
+            print('파일을 찾을 수 없습니다.')
+
+
 # 실행 코드
 course_history = CourseHistory()
 
@@ -140,7 +172,9 @@ while True:
     print('    2. 출력')
     print('    3. 조회')
     print('    4. 계산')
-    print('    5. 종료')
+    print('    5. 파일 저장')
+    print('    6. 파일 불러오기')
+    print('    7. 종료')
 
     # 사용자 입력
     user_input = input()
@@ -157,8 +191,14 @@ while True:
 
     elif user_input == '4':
         course_history.calculate_process()
-        
+    
     elif user_input == '5':
+        course_history.savefile()
+
+    elif user_input == '6':
+        course_history.loadfile()
+
+    elif user_input == '7':
         break
 
     elif not user_input:
