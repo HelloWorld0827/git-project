@@ -1,4 +1,5 @@
-from practice_05 import CourseRecord, CourseHistory
+from .practice_05 import CourseRecord
+from .practice_05 import CourseHistory
 
 # 실행 코드
 course_history = CourseHistory()
